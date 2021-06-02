@@ -11,8 +11,13 @@ import time
 
 class Client:
 
-    def __init__(self, ports: list[Port]):
+    def __init__(self, id: str, ports: list[Port]):
+        self._id = id
         self._ports = {elem.id: elem for elem in ports}
+
+    @property
+    def id(self) -> str:
+        return self._id
 
     def set_value(self, port: str, value: Any) -> None:
         self._ports[port].value = value
@@ -72,7 +77,7 @@ class ServerBase:
         with self._lock:
             sender, receiver = Jack(*sender), Jack(*receiver)
             c = Connection(sender, receiver)
-            self._connections.insert(c)
+            self._connections.add(c)
 
     def set_value(self, client: str, port: str, value: Any) -> None:
         with self._lock:
@@ -84,13 +89,13 @@ class ServerBase:
 
     def _update(self):
         with self._lock:
-            for client in self._clients:
+            for _, client in self._clients.items():
                 client.loop()
             for conn in self._connections:
                 sender = self._clients[conn.sender.client]
                 receiver = self._clients[conn.receiver.client]
                 receiver.set_value(
-                    conn.reciever.port,
+                    conn.receiver.port,
                     sender.get_value(conn.sender.port)
                 )
 
