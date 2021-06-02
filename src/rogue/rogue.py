@@ -26,17 +26,13 @@ class Client:
 
 class Port:
 
-    def __init__(self, id: str, flags: set[str]):
+    def __init__(self, id: str):
         self._id = id
-        self._flags = flags
         self._value = None
 
     @property
     def id(self) -> str:
         return self._id
-
-    def has_flag(self, flag: str) -> bool:
-        return flag in self._flags
 
     @property
     def value(self):
@@ -66,9 +62,9 @@ class ServerBase:
         self._connections = set()
         self._lock = threading.Lock()
 
-    def add_client(self, id: str, ports: list[Port]) -> None:
+    def add_client(self, id: str, ports: list[str]) -> None:
         with self._lock:
-            self._clients[id] = Client(id, ports)
+            self._clients[id] = Client(id, [Port(id) for id in ports])
 
     def connect(self,
                 sender: tuple[str, str],
@@ -101,7 +97,7 @@ class ServerBase:
 
 class Daemon(threading.Thread):
 
-    def __init__(self, *args, **kwargs, grain: float):
+    def __init__(self, *args, grain: float, **kwargs):
         super().__init__(*args, **kwargs, daemon=True)
         self._done = threading.Event()
         self._error_queue = queue.Queue()
