@@ -5,15 +5,19 @@
 from __future__ import annotations
 
 import dataclasses
+import queue
 import threading
 import time
+from typing import Callable, Optional
 
 
 class Client:
 
-    def __init__(self, id: str, ports: list[Port]):
+    def __init__(self, id: str, ports: list[Port], loop: Optional[Callable] = None):
         self._id = id
         self._ports = {elem.id: elem for elem in ports}
+        if loop is None:
+            self._loop = lambda: ...
 
     @property
     def id(self) -> str:
@@ -26,7 +30,7 @@ class Client:
         return self._ports[port].value
 
     def loop(self) -> None:
-        pass
+        self._loop(self)
 
 
 class Port:
@@ -112,7 +116,7 @@ class Daemon(threading.Thread):
     def run(self):
         while not self._done.is_set():
             try:
-                super().run()
+                self._target(*self._args, **self._kwargs)
             except Exception as e:
                 self._error_queue.put(e)
             time.sleep(self._grain)
@@ -131,16 +135,14 @@ class Daemon(threading.Thread):
 
 class Server(ServerBase):
 
-    def __init__(self, grain: float):
+    def __init__(self, grain: float = 0.0):
         super().__init__()
         self._daemon = Daemon(target=self._update, grain=grain)
 
     def exec(self):
-        assert self._daemon is None
         self._daemon.start()
 
     def kill(self):
-        assert self._daemon is not None
         self._daemon.kill()
 
     def process_errors(self):
