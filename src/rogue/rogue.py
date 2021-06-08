@@ -17,7 +17,7 @@ class Client:
         self._id = id
         self._ports = {elem.id: elem for elem in ports}
         if loop is None:
-            self._loop = lambda: ...
+            self._loop = lambda _: ...
 
     @property
     def id(self) -> str:
@@ -35,9 +35,9 @@ class Client:
 
 class Port:
 
-    def __init__(self, id: str):
+    def __init__(self, id: str, value: Any = 0.0):
         self._id = id
-        self._value = None
+        self._value = value
 
     @property
     def id(self) -> str:
@@ -71,9 +71,12 @@ class ServerBase:
         self._connections = set()
         self._lock = threading.Lock()
 
-    def add_client(self, id: str, ports: list[str]) -> None:
+    def add_client(self, id: str, ports: Union[list[str], dict[str, Any]]) -> None:
         with self._lock:
-            self._clients[id] = Client(id, [Port(id) for id in ports])
+            if isinstance(ports, list):
+                self._clients[id] = Client(id, [Port(id) for id in ports])
+            else:
+                self._clients[id] = Client(id, [Port(id, val) for id, val in ports.items()])
 
     def connect(self,
                 sender: tuple[str, str],
