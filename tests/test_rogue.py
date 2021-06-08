@@ -32,7 +32,7 @@ class TestServerBase:
         server._update()
         assert server.get_value('dev0', 'port0') == 123
         assert server.get_value('dev0', 'port1') == 456
-        assert server.get_value('dev1', 'port2') == None
+        assert server.get_value('dev1', 'port2') == 0.0
         assert server.get_value('dev1', 'port3') == 123
 
     def test_set_value_no_such_client(self, server):
@@ -92,9 +92,10 @@ class TestServer:
         server.set_value('dev0', 'port0', 123)
         server.set_value('dev0', 'port1', 456)
         time.sleep(0.02)
+        server.process_errors()
         assert server.get_value('dev0', 'port0') == 123
         assert server.get_value('dev0', 'port1') == 456
-        assert server.get_value('dev1', 'port2') == None
+        assert server.get_value('dev1', 'port2') == 0.0
         assert server.get_value('dev1', 'port3') == 123
 
     def test_set_value_no_such_client(self, server):
