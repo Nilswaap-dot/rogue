@@ -157,11 +157,14 @@ class Daemon(threading.Thread):
 
     def run(self):
         while not self._done.is_set():
+            start = time.time()
             try:
                 self._target(*self._args, **self._kwargs)
             except Exception as e:
                 self._error_queue.put(e)
-            time.sleep(self._grain)
+            diff = time.time() - start
+            wait = max(0, self._grain - diff)
+            time.sleep(wait)
 
     def kill(self):
         self._done.set()
