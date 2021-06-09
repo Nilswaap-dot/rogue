@@ -51,6 +51,18 @@ class TestServerBase:
         with pytest.raises(KeyError):
             server.get_value('dev0', 'port2')
 
+    def test_listen_data(self, server):
+        counter = 0
+        def loop(client):
+            nonlocal counter
+            client.set_value('port0', counter**2)
+            counter += 1
+        server.add_client('dev2', {'port0': 0}, loop)
+        server.listen('dev2', 'port0')
+        for _ in range(3):
+            server._update()
+        assert server.data == {'dev2': {'port0': [(0, 0), (1, 1), (2, 4)]}}
+
 
 class TestDaemon:
 
