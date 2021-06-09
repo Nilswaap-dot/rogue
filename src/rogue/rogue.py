@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 import queue
 import threading
@@ -85,7 +86,7 @@ class ServerBase:
         self._cycle_count: int = 0
 
     @property
-    def data(self) -> dict[dict[str, Any]]:
+    def data(self) -> dict[dict[str, Data]]:
         return self._data
 
     def add_client(self,
@@ -180,6 +181,13 @@ class Server(ServerBase):
         super().__init__()
         self._daemon = Daemon(target=self._update, grain=grain)
         self._grain = grain
+
+    def data(self) -> dict[dict[str, Data]]:
+        result = copy.deepcopy(self._data)
+        for _, d in result.items():
+            for _, data in d.items():
+                data.time = [t*self._grain for t in data.time]
+        return result
 
     def exec(self):
         self._daemon.start()
