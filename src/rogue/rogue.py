@@ -68,12 +68,19 @@ class Connection:
     receiver: Jack
 
 
+@dataclasses.dataclass(frozen=True)
+class Request:
+    client: str
+    port: str
+
+
 class ServerBase:
 
     def __init__(self):
         self._clients = {}
         self._connections = set()
         self._lock = threading.Lock()
+        self._requests = []
         self._data = {}
         self._cycle_count = 0
 
@@ -101,6 +108,13 @@ class ServerBase:
         with self._lock:
             return self._clients[client].get_value(port)
 
+    def listen(self, client: str, port: str) -> None:
+        if not client in self._clients:
+            raise ValueError(f'Client "{client}" not found')
+        if not port in self._clients.ports:
+            raise ValueError(f'Client "{client}" has no port "{port}"')
+        self._requests.append(Request(client, port))
+
     def _update(self):
         with self._lock:
             for _, client in self._clients.items():
@@ -112,9 +126,10 @@ class ServerBase:
                     conn.receiver.port,
                     sender.get_value(conn.sender.port)
                 )
-        for _, client in self._clients.items():
+        for id in self._requests:
+            client = self._clients[id]
             for port in client.ports:
-                self._data[client.id][port].append((self._cycle_count, client.get_value(port)))
+                self._data[id][port].append((self._cycle_count, client.get_value(port)))
         self._cycle_count += 1
 
 
