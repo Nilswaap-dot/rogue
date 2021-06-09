@@ -77,19 +77,28 @@ class Request:
 class ServerBase:
 
     def __init__(self):
-        self._clients = {}
-        self._connections = set()
+        self._clients: dict[str, Client] = {}
+        self._connections: set[Connection] = set()
         self._lock = threading.Lock()
-        self._requests = []
-        self._data = {}
-        self._cycle_count = 0
+        self._requests: list[Request] = []
+        self._data: dict[dict[str, Any]] = {}
+        self._cycle_count: int = 0
 
-    def add_client(self, id: str, ports: Union[list[str], dict[str, Any]]) -> None:
+    @property
+    def data(self) -> dict[dict[str, Any]]:
+        return self._data
+
+    def add_client(self,
+                   id: str,
+                   ports: Union[list[str], dict[str, Any]],
+                   loop: Optional[Callable] = None
+                   ) -> None:
         with self._lock:
             if isinstance(ports, list):
-                self._clients[id] = Client(id, [Port(id) for id in ports])
+                ports = [Port(id) for id in ports]
             else:
-                self._clients[id] = Client(id, [Port(id, val) for id, val in ports.items()])
+                ports = [Port(id, val) for id, val in ports.items()]
+            self._clients[id] = Client(id, ports, loop)
             self._data[id] = {port: [] for port in ports}
 
     def connect(self,
