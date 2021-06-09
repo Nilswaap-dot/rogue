@@ -69,6 +69,12 @@ class Connection:
     receiver: Jack
 
 
+@dataclasses.dataclass
+class Data:
+    time: list = dataclasses.field(default_factory=list)
+    values: list = dataclasses.field(default_factory=list)
+
+
 class ServerBase:
 
     def __init__(self):
@@ -118,7 +124,7 @@ class ServerBase:
         ports = self._data.get(client)
         if ports is None:
             self._data[client] = {}
-        self._data[client][port] = []
+        self._data[client][port] = Data()
 
     def _update(self):
         with self._lock:
@@ -134,7 +140,8 @@ class ServerBase:
         for id, ports in self._data.items():
             for port in ports:
                 client = self._clients[id]
-                self._data[id][port].append((self._cycle_count, client.get_value(port)))
+                self._data[id][port].time.append(self._cycle_count)
+                self._data[id][port].values.append(client.get_value(port))
         self._cycle_count += 1
 
 

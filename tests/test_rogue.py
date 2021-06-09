@@ -61,7 +61,7 @@ class TestServerBase:
         server.listen('dev2', 'port0')
         for _ in range(3):
             server._update()
-        assert server.data == {'dev2': {'port0': [(0, 0), (1, 1), (2, 4)]}}
+        assert server.data == {'dev2': {'port0': rogue.Data([0, 1, 2], [0, 1, 4])}}
 
 
 class TestDaemon:
