@@ -27,3 +27,7 @@ else
 endif
 	$(PIP) install -r requirements.txt
 	$(PYTHON) setup.py install
+
+.PHONY: install
+install:
+	pip install .
