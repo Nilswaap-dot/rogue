@@ -23,6 +23,10 @@ class Client:
     def id(self) -> str:
         return self._id
 
+    @property
+    def ports(self) -> list[str]:
+        return list(self._ports)
+
     def set_value(self, port: str, value: Any) -> None:
         self._ports[port].value = value
 
@@ -70,6 +74,8 @@ class ServerBase:
         self._clients = {}
         self._connections = set()
         self._lock = threading.Lock()
+        self._data = {}
+        self._cycle_count = 0
 
     def add_client(self, id: str, ports: Union[list[str], dict[str, Any]]) -> None:
         with self._lock:
@@ -77,6 +83,7 @@ class ServerBase:
                 self._clients[id] = Client(id, [Port(id) for id in ports])
             else:
                 self._clients[id] = Client(id, [Port(id, val) for id, val in ports.items()])
+            self._data[id] = {port: [] for port in ports}
 
     def connect(self,
                 sender: tuple[str, str],
@@ -105,6 +112,10 @@ class ServerBase:
                     conn.receiver.port,
                     sender.get_value(conn.sender.port)
                 )
+        for _, client in self._clients.items():
+            for port in client.ports:
+                self._data[client.id][port].append((self._cycle_count, client.get_value(port)))
+        self._cycle_count += 1
 
 
 class Daemon(threading.Thread):
@@ -141,6 +152,7 @@ class Server(ServerBase):
     def __init__(self, grain: float = 0.0):
         super().__init__()
         self._daemon = Daemon(target=self._update, grain=grain)
+        self._grain = grain
 
     def exec(self):
         self._daemon.start()
