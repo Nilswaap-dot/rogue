@@ -17,7 +17,8 @@ class Client:
         self._id = id
         self._ports = {elem.id: elem for elem in ports}
         if loop is None:
-            self._loop = lambda _: ...
+            loop = lambda _: ...
+        self._loop = loop
 
     @property
     def id(self) -> str:
@@ -68,19 +69,12 @@ class Connection:
     receiver: Jack
 
 
-@dataclasses.dataclass(frozen=True)
-class Request:
-    client: str
-    port: str
-
-
 class ServerBase:
 
     def __init__(self):
         self._clients: dict[str, Client] = {}
         self._connections: set[Connection] = set()
         self._lock = threading.Lock()
-        self._requests: list[Request] = []
         self._data: dict[dict[str, Any]] = {}
         self._cycle_count: int = 0
 
@@ -99,7 +93,6 @@ class ServerBase:
             else:
                 ports = [Port(id, val) for id, val in ports.items()]
             self._clients[id] = Client(id, ports, loop)
-            self._data[id] = {port: [] for port in ports}
 
     def connect(self,
                 sender: tuple[str, str],
@@ -120,9 +113,12 @@ class ServerBase:
     def listen(self, client: str, port: str) -> None:
         if not client in self._clients:
             raise ValueError(f'Client "{client}" not found')
-        if not port in self._clients.ports:
+        if not port in self._clients[client].ports:
             raise ValueError(f'Client "{client}" has no port "{port}"')
-        self._requests.append(Request(client, port))
+        ports = self._data.get(client)
+        if ports is None:
+            self._data[client] = {}
+        self._data[client][port] = []
 
     def _update(self):
         with self._lock:
@@ -135,9 +131,9 @@ class ServerBase:
                     conn.receiver.port,
                     sender.get_value(conn.sender.port)
                 )
-        for id in self._requests:
-            client = self._clients[id]
-            for port in client.ports:
+        for id, ports in self._data.items():
+            for port in ports:
+                client = self._clients[id]
                 self._data[id][port].append((self._cycle_count, client.get_value(port)))
         self._cycle_count += 1
 
