@@ -198,7 +198,6 @@ class Server(ServerBase):
 
     def __init__(self, grain: float = 0.0):
         super().__init__()
-        self._daemon = Daemon(target=self._update, grain=grain)
         self._grain = grain
 
     def data(self) -> dict[dict[str, Data]]:
@@ -209,6 +208,7 @@ class Server(ServerBase):
         return result
 
     def exec(self):
+        self._daemon = Daemon(target=self._update, grain=self._grain)
         self._daemon.start()
 
     def kill(self):
