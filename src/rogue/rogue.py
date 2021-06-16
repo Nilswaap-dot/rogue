@@ -213,6 +213,7 @@ class Server(ServerBase):
 
     def kill(self):
         self._daemon.kill()
+        self._cycle_count = 0
 
     def process_errors(self):
         self._daemon.process_errors()
