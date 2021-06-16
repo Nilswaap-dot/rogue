@@ -150,6 +150,12 @@ class TestServer:
         assert trunc == rogue.Data([0.0, 0.01, 0.02, 0.03], [0, 1, 4, 9])
         server.process_errors()
 
-    def test_block(self):
+    def test_restart(self):
         server = rogue.Server()
+        server.exec()
+        time.sleep(0.01)
+        server.kill()
+        time.sleep(0.01)
+        server.exec()
+        time.sleep(0.01)
         server.process_errors()
