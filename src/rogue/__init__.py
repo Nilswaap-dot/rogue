@@ -1,1 +1,1 @@
-from rogue.rogue import Server
+from rogue.rogue import RogueException, Server

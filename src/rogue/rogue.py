@@ -12,6 +12,10 @@ import time
 from typing import Callable, Optional
 
 
+class RogueException(BaseException):
+    pass
+
+
 class Client:
 
     def __init__(self, id: str, ports: list[Port], loop: Optional[Callable] = None):
@@ -30,10 +34,16 @@ class Client:
         return list(self._ports)
 
     def set_value(self, port: str, value: Any) -> None:
-        self._ports[port].value = value
+        p = self._ports.get(port)
+        if p is None:
+            raise ValueError(f'Client {id} has no port {port}')
+        p.value = value
 
     def get_value(self, port: str) -> None:
-        return self._ports[port].value
+        p = self._ports.get(port)
+        if p is None:
+            raise ValueError(f'Client {id} has no port {port}')
+        return p.value
 
     def loop(self) -> None:
         self._loop(self)
@@ -82,7 +92,7 @@ class ServerBase:
         self._clients: dict[str, Client] = {}
         self._connections: set[Connection] = set()
         self._lock = threading.Lock()
-        self._data: dict[dict[str, Any]] = {}
+        self._data: dict[dict[str, Data]] = {}
         self._cycle_count: int = 0
 
     @property
