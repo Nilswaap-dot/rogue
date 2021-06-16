@@ -153,9 +153,9 @@ class TestServer:
     def test_restart(self):
         server = rogue.Server()
         server.exec()
-        time.sleep(0.01)
+        time.sleep(0.09)
         server.kill()
-        time.sleep(0.01)
+        assert server._cycle_count == 0
         server.exec()
         time.sleep(0.01)
         server.process_errors()
