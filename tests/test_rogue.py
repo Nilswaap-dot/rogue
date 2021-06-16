@@ -28,27 +28,29 @@ class TestServerBase:
 
     def test_set_value_get_value(self, server):
         server.set_value('dev0', 'port0', 123)
+        assert server.get_value('dev0', 'port0') == 123
         server.set_value('dev0', 'port1', 456)
         server._update()
-        assert server.get_value('dev0', 'port0') == 123
+        server._update()
+        server._update()
         assert server.get_value('dev0', 'port1') == 456
         assert server.get_value('dev1', 'port2') == 0.0
         assert server.get_value('dev1', 'port3') == 123
 
     def test_set_value_no_such_client(self, server):
-        with pytest.raises(KeyError):
+        with pytest.raises(rogue.RogueException):
             server.set_value('dev3', 'port0', None)
 
     def test_set_value_no_such_port(self, server):
-        with pytest.raises(KeyError):
+        with pytest.raises(rogue.RogueException):
             server.set_value('dev0', 'port2', None)
 
     def test_set_value_no_such_client(self, server):
-        with pytest.raises(KeyError):
+        with pytest.raises(rogue.RogueException):
             server.get_value('dev3', 'port0')
 
     def test_set_value_no_such_port(self, server):
-        with pytest.raises(KeyError):
+        with pytest.raises(rogue.RogueException):
             server.get_value('dev0', 'port2')
 
     def test_listen_data(self, server):
@@ -98,6 +100,7 @@ class TestServer:
         _server.connect(('dev0', 'port0'), ('dev1', 'port3'))
         yield _server
         _server.kill()
+        _server.process_errors()
 
     def test_set_value_get_value(self, server):
         server.exec()
@@ -109,25 +112,26 @@ class TestServer:
         assert server.get_value('dev0', 'port1') == 456
         assert server.get_value('dev1', 'port2') == 0.0
         assert server.get_value('dev1', 'port3') == 123
+        server.process_errors()
 
     def test_set_value_no_such_client(self, server):
         server.exec()
-        with pytest.raises(KeyError):
+        with pytest.raises(rogue.RogueException):
             server.set_value('dev2', 'port0', None)
 
     def test_set_value_no_such_port(self, server):
         server.exec()
-        with pytest.raises(KeyError):
+        with pytest.raises(rogue.RogueException):
             server.set_value('dev0', 'port2', None)
 
     def test_set_value_no_such_client(self, server):
         server.exec()
-        with pytest.raises(KeyError):
+        with pytest.raises(rogue.RogueException):
             server.get_value('dev2', 'port0')
 
     def test_set_value_no_such_port(self, server):
         server.exec()
-        with pytest.raises(KeyError):
+        with pytest.raises(rogue.RogueException):
             server.get_value('dev0', 'port2')
 
     def test_listen_data(self, server):
@@ -139,6 +143,13 @@ class TestServer:
         server.add_client('dev2', {'port0': 0}, loop)
         server.listen('dev2', 'port0')
         server.exec()
-        time.sleep(0.03)
+        time.sleep(0.10)
         server.kill()
-        assert server.data() == {'dev2': {'port0': rogue.Data([0.0, 0.01, 0.02], [0, 1, 4])}}
+        data = server.data()['dev2']['port0']
+        trunc = rogue.Data(data.time[:4], data.values[:4])
+        assert trunc == rogue.Data([0.0, 0.01, 0.02, 0.03], [0, 1, 4, 9])
+        server.process_errors()
+
+    def test_block(self):
+        server = rogue.Server()
+        server.process_errors()

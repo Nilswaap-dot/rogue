@@ -36,13 +36,13 @@ class Client:
     def set_value(self, port: str, value: Any) -> None:
         p = self._ports.get(port)
         if p is None:
-            raise ValueError(f'Client {id} has no port {port}')
+            raise RogueException(f'Client {self._id} has no port {port}')
         p.value = value
 
-    def get_value(self, port: str) -> None:
+    def get_value(self, port: str):
         p = self._ports.get(port)
         if p is None:
-            raise ValueError(f'Client {id} has no port {port}')
+            raise RogueException(f'Client {self._id} has no port {port}')
         return p.value
 
     def loop(self) -> None:
@@ -121,17 +121,21 @@ class ServerBase:
 
     def set_value(self, client: str, port: str, value: Any) -> None:
         with self._lock:
+            if not client in self._clients:
+                raise RogueException(f'Client "{client}" not found')
             self._clients[client].set_value(port, value)
 
     def get_value(self, client: str, port: str):
         with self._lock:
+            if not client in self._clients:
+                raise RogueException(f'Client "{client}" not found')
             return self._clients[client].get_value(port)
 
     def listen(self, client: str, port: str) -> None:
         if not client in self._clients:
-            raise ValueError(f'Client "{client}" not found')
+            raise RogueException(f'Client "{client}" not found')
         if not port in self._clients[client].ports:
-            raise ValueError(f'Client "{client}" has no port "{port}"')
+            raise RogueException(f'Client "{client}" has no port "{port}"')
         ports = self._data.get(client)
         if ports is None:
             self._data[client] = {}
@@ -172,6 +176,8 @@ class Daemon(threading.Thread):
                 self._target(*self._args, **self._kwargs)
             except Exception as e:
                 self._error_queue.put(e)
+                if type(e) != RogueException:
+                    break
             diff = time.time() - start
             wait = max(0, self._grain - diff)
             time.sleep(wait)
