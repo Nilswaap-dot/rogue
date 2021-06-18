@@ -141,7 +141,15 @@ class ServerBase:
             self._data[client] = {}
         self._data[client][port] = Data()
 
+    def _store_values(self):
+        for id, ports in self._data.items():
+            for port in ports:
+                client = self._clients[id]
+                self._data[id][port].time.append(self._cycle_count)
+                self._data[id][port].values.append(client.get_value(port))
+
     def _update(self):
+        current_time = time.perf_counter()
         with self._lock:
             for _, client in self._clients.items():
                 client.loop()
@@ -152,11 +160,7 @@ class ServerBase:
                     conn.receiver.port,
                     sender.get_value(conn.sender.port)
                 )
-        for id, ports in self._data.items():
-            for port in ports:
-                client = self._clients[id]
-                self._data[id][port].time.append(self._cycle_count)
-                self._data[id][port].values.append(client.get_value(port))
+        self._store_values()
         self._cycle_count += 1
 
 
@@ -171,14 +175,14 @@ class Daemon(threading.Thread):
 
     def run(self):
         while not self._done.is_set():
-            start = time.time()
+            start = time.perf_counter()
             try:
                 self._target(*self._args, **self._kwargs)
             except Exception as e:
                 self._error_queue.put(e)
                 if type(e) != RogueException:
                     break
-            diff = time.time() - start
+            diff = time.perf_counter() - start
             wait = max(0, self._grain - diff)
             time.sleep(wait)
 
@@ -199,15 +203,11 @@ class Server(ServerBase):
     def __init__(self, grain: float = 0.0):
         super().__init__()
         self._grain = grain
-
-    def data(self) -> dict[dict[str, Data]]:
-        result = copy.deepcopy(self._data)
-        for _, d in result.items():
-            for _, data in d.items():
-                data.time = [t*self._grain for t in data.time]
-        return result
+        self._start_time = None
+        self._daemon = None
 
     def exec(self):
+        self._start_time = time.perf_counter()
         self._daemon = Daemon(target=self._update, grain=self._grain)
         self._daemon.start()
 
@@ -217,3 +217,11 @@ class Server(ServerBase):
 
     def process_errors(self):
         self._daemon.process_errors()
+
+    def _store_values(self):
+        current_time = time.perf_counter() - self._start_time
+        for id, ports in self._data.items():
+            for port in ports:
+                client = self._clients[id]
+                self._data[id][port].time.append(current_time)
+                self._data[id][port].values.append(client.get_value(port))

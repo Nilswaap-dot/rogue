@@ -143,10 +143,12 @@ class TestServer:
         server.add_client('dev2', {'port0': 0}, loop)
         server.listen('dev2', 'port0')
         server.exec()
-        time.sleep(0.10)
+        time.sleep(0.1)
         server.kill()
-        data = server.data()['dev2']['port0']
+        data = server.data['dev2']['port0']
         trunc = rogue.Data(data.time[:4], data.values[:4])
+        trunc.time = [round(t, 2) for t in trunc.time]
+        print(trunc.time)
         assert trunc == rogue.Data([0.0, 0.01, 0.02, 0.03], [0, 1, 4, 9])
         server.process_errors()
 
