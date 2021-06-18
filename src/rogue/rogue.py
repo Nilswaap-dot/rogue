@@ -166,25 +166,32 @@ class ServerBase:
 
 class Daemon(threading.Thread):
 
-    def __init__(self, *args, grain: float, **kwargs):
+    def __init__(self, *args, duration: float, **kwargs):
         super().__init__(*args, **kwargs, daemon=True)
         self._done = threading.Event()
         self._error_queue = queue.Queue()
-        assert grain >= 0
-        self._grain = grain
+        assert duration >= 0
+        self._duration = duration
+        self._grain = duration / 1000
+        self._start_time = None
+
+    def start(self):
+        self._start_time = time.perf_counter()
+        super().start()
 
     def run(self):
+        last = -2*self._duration  # Make sure that the job is executed immediately.
         while not self._done.is_set():
-            start = time.perf_counter()
-            try:
-                self._target(*self._args, **self._kwargs)
-            except Exception as e:
-                self._error_queue.put(e)
-                if type(e) != RogueException:
-                    break
-            diff = time.perf_counter() - start
-            wait = max(0, self._grain - diff)
-            time.sleep(wait)
+            current = time.perf_counter()
+            if current - last > self._duration:
+                last = current
+                try:
+                    self._target(*self._args, **self._kwargs)
+                except Exception as e:
+                    self._error_queue.put(e)
+                    if type(e) != RogueException:
+                        break
+            time.sleep(self._grain)
 
     def kill(self):
         self._done.set()
@@ -200,15 +207,15 @@ class Daemon(threading.Thread):
 
 class Server(ServerBase):
 
-    def __init__(self, grain: float = 0.0):
+    def __init__(self, duration: float = 0.0):
         super().__init__()
-        self._grain = grain
+        self._duration = duration
         self._start_time = None
         self._daemon = None
 
     def exec(self):
         self._start_time = time.perf_counter()
-        self._daemon = Daemon(target=self._update, grain=self._grain)
+        self._daemon = Daemon(target=self._update, duration=self._duration)
         self._daemon.start()
 
     def kill(self):
