@@ -9,7 +9,7 @@ with open('README.md') as readme:
 
 setuptools.setup(
     name='rogue',
-    version='0.1.0',
+    version='0.1.7',
     author="Forschungs- und Entwicklungszentrum Fachhochschule Kiel GmbH",
     long_description=long_description,
     long_description_content_type='text/markdown',

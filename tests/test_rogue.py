@@ -73,7 +73,7 @@ class TestDaemon:
         def fn():
             nonlocal counter
             counter += 1
-        daemon = rogue.Daemon(target=fn, grain=0.01)
+        daemon = rogue.Daemon(target=fn, duration=0.01)
         daemon.start()
         time.sleep(0.015)
         daemon.kill()
@@ -83,7 +83,7 @@ class TestDaemon:
     def test_failure(self):
         def fn():
             raise RuntimeError()
-        daemon = rogue.Daemon(target=fn, grain=0.0)
+        daemon = rogue.Daemon(target=fn, duration=0.0)
         daemon.start()
         daemon.kill()
         with pytest.raises(RuntimeError):
@@ -94,7 +94,7 @@ class TestServer:
 
     @pytest.fixture
     def server(self):
-        _server = rogue.Server(grain=0.01)
+        _server = rogue.Server(duration=0.01)
         _server.add_client('dev0', ports=['port0', 'port1'])
         _server.add_client('dev1', ports=['port2', 'port3'])
         _server.connect(('dev0', 'port0'), ('dev1', 'port3'))
