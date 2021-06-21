@@ -173,18 +173,22 @@ class Daemon(threading.Thread):
         assert duration >= 0
         self._duration = duration
         self._grain = duration / 1000
+        # `self._precision` is picked so that measurements are taken too
+        # early about 50% of the time.
+        self._precision = self._grain / 2
         self._start_time = None
 
     def start(self):
-        self._start_time = time.perf_counter()
         super().start()
 
     def run(self):
-        last = -2*self._duration  # Make sure that the job is executed immediately.
+        cycles = 0
+        start_time = time.perf_counter()
         while not self._done.is_set():
             current = time.perf_counter()
-            if current - last > self._duration:
-                last = current
+            next_ = start_time + cycles*self._duration
+            if (current > next_ - self._precision):
+                cycles += 1
                 try:
                     self._target(*self._args, **self._kwargs)
                 except Exception as e:
