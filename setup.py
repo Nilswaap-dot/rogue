@@ -9,7 +9,7 @@ with open('README.md') as readme:
 
 setuptools.setup(
     name='rogue',
-    version='0.1.6',
+    version='0.1.7',
     author='M. Kliemann',
     author_email='mail@maltekliemann.com',
     description='IO hardware simulator',
