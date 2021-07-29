@@ -31,3 +31,8 @@ endif
 .PHONY: install
 install:
 	pip install .
+
+.PHONY: clean
+clean:
+	python setup.py clean
+	rm -fr $(VENV)

@@ -70,19 +70,33 @@ class TestServerBase:
         assert server.data == {'dev2': {'port0': rogue.Data([0, 1, 2], [0, 1, 4])}}
 
 
+def _sleep(duration: float) -> float:
+    """Sleep _at least_ for the specified duration and return actual
+    sleep duration."""
+    # Python gives no guarantee how long `time.sleep` actually suspends
+    # operation, so we measure actual sleep time:
+    # https://docs.python.org/3.8/library/time.html#time.sleep
+    start = time.perf_counter()
+    while (time_slept := time.perf_counter() - start) < duration:
+        time.sleep(duration - time_slept)
+    return time_slept
+
+
+
 class TestDaemon:
 
     def test_success(self):
+        duration = 0.01
         counter = 0
         def fn():
             nonlocal counter
             counter += 1
-        daemon = rogue.Daemon(target=fn, duration=0.01)
+        daemon = rogue.Daemon(target=fn, duration=duration)
         daemon.start()
-        time.sleep(0.015)
+        time_slept = _sleep(0.015)
         daemon.kill()
         daemon.process_errors()
-        assert counter == 2
+        assert counter == 1 + int(time_slept/duration)
 
     def test_failure(self):
         def fn():
@@ -110,7 +124,7 @@ class TestServer:
         server.exec()
         server.set_value('dev0', 'port0', 123)
         server.set_value('dev0', 'port1', 456)
-        time.sleep(0.02)
+        _sleep(0.02)
         server.process_errors()
         assert server.get_value('dev0', 'port0') == 123
         assert server.get_value('dev0', 'port1') == 456
@@ -147,7 +161,7 @@ class TestServer:
         server.add_client('dev2', {'port0': 0}, loop)
         server.listen('dev2', 'port0')
         server.exec()
-        time.sleep(0.1)
+        _sleep(0.1)
         server.kill()
         data = server.data['dev2']['port0']
         trunc = rogue.Data(data.time[:4], data.values[:4])
@@ -159,9 +173,9 @@ class TestServer:
     def test_restart(self):
         server = rogue.Server()
         server.exec()
-        time.sleep(0.09)
+        _sleep(0.09)
         server.kill()
         assert server._cycle_count == 0
         server.exec()
-        time.sleep(0.01)
+        _sleep(0.01)
         server.process_errors()
