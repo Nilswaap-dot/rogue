@@ -8,23 +8,22 @@ on:
     branches: master
   pull_request:
     branches:
-    - master
-    - develop
+      - master
+      - develop
   workflow_dispatch:
 
 jobs:
   main:
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-    - name: Install requirements
-      run: |
-        pip install -r requirements.txt
-        pip install .
-    - name: Run tests
-      run: |
-        pytest -vv tests
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9.x
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+          pip install .
+      - name: Run tests
+        run: |
+          pytest -vv tests
