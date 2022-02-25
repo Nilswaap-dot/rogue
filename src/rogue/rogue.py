@@ -17,7 +17,6 @@ class RogueException(BaseException):
 
 
 class Client:
-
     def __init__(self, id: str, ports: list[Port], loop: Optional[Callable] = None):
         self._id = id
         self._ports = {elem.id: elem for elem in ports}
@@ -36,13 +35,13 @@ class Client:
     def set_value(self, port: str, value: Any) -> None:
         p = self._ports.get(port)
         if p is None:
-            raise RogueException(f'Client {self._id} has no port {port}')
+            raise RogueException(f"Client {self._id} has no port {port}")
         p.value = value
 
     def get_value(self, port: str):
         p = self._ports.get(port)
         if p is None:
-            raise RogueException(f'Client {self._id} has no port {port}')
+            raise RogueException(f"Client {self._id} has no port {port}")
         return p.value
 
     def loop(self) -> None:
@@ -50,7 +49,6 @@ class Client:
 
 
 class Port:
-
     def __init__(self, id: str, value: Any = 0.0):
         self._id = id
         self._value = value
@@ -87,7 +85,6 @@ class Data:
 
 
 class ServerBase:
-
     def __init__(self):
         self._clients: dict[str, Client] = {}
         self._connections: set[Connection] = set()
@@ -99,11 +96,12 @@ class ServerBase:
     def data(self) -> dict[dict[str, Data]]:
         return self._data
 
-    def add_client(self,
-                   id: str,
-                   ports: Union[list[str], dict[str, Any]],
-                   loop: Optional[Callable] = None
-                   ) -> None:
+    def add_client(
+        self,
+        id: str,
+        ports: Union[list[str], dict[str, Any]],
+        loop: Optional[Callable] = None,
+    ) -> None:
         with self._lock:
             if isinstance(ports, list):
                 ports = [Port(id) for id in ports]
@@ -111,9 +109,7 @@ class ServerBase:
                 ports = [Port(id, val) for id, val in ports.items()]
             self._clients[id] = Client(id, ports, loop)
 
-    def connect(self,
-                sender: tuple[str, str],
-                receiver: tuple[str, str]) -> None:
+    def connect(self, sender: tuple[str, str], receiver: tuple[str, str]) -> None:
         with self._lock:
             sender, receiver = Jack(*sender), Jack(*receiver)
             c = Connection(sender, receiver)
@@ -157,15 +153,13 @@ class ServerBase:
                 sender = self._clients[conn.sender.client]
                 receiver = self._clients[conn.receiver.client]
                 receiver.set_value(
-                    conn.receiver.port,
-                    sender.get_value(conn.sender.port)
+                    conn.receiver.port, sender.get_value(conn.sender.port)
                 )
         self._store_values()
         self._cycle_count += 1
 
 
 class Daemon(threading.Thread):
-
     def __init__(self, *args, duration: float, **kwargs):
         super().__init__(*args, **kwargs, daemon=True)
         self._done = threading.Event()
@@ -186,8 +180,8 @@ class Daemon(threading.Thread):
         start_time = time.perf_counter()
         while not self._done.is_set():
             current = time.perf_counter()
-            next_ = start_time + cycles*self._duration
-            if (current > next_ - self._precision):
+            next_ = start_time + cycles * self._duration
+            if current > next_ - self._precision:
                 cycles += 1
                 try:
                     self._target(*self._args, **self._kwargs)
@@ -210,7 +204,6 @@ class Daemon(threading.Thread):
 
 
 class Server(ServerBase):
-
     def __init__(self, duration: float = 0.0):
         super().__init__()
         self._duration = duration
